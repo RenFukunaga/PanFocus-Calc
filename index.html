@@ -102,4 +102,16 @@
                     ■ 過焦点距離: <span class="val">${(H/1000).toFixed(2)} km</span><br>
                     ■ 合焦範囲 (近点): <span class="val">${(Dn/1000).toFixed(3)} km</span> ～ 無限遠<br>
                     <p style="font-size:0.85em; color:#bbb; margin-top:10px;">
-                        ※ピントを
+                        ※ピントを <b>${(H/1000).toFixed(2)}km</b> 先に置くことで、被写体から無限遠まで解像します。
+                    </p>
+                `;
+
+            } catch (e) {
+                // エラー時の表示
+                resDiv.classList.add('error');
+                resDiv.innerHTML = `<b>エラー:</b> ${e.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
