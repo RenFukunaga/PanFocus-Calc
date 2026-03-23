@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Hyperfocal Calc</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: #1a1a1a; color: #eee; }
+        .card { background: #2a2a2a; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        label { display: block; margin-top: 10px; font-size: 0.85em; color: #bbb; }
+        input, select { width: 100%; padding: 12px; margin: 5px 0 15px; border: 1px solid #444; border-radius: 6px; background: #333; color: #fff; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; }
+        #result { margin-top: 20px; padding: 15px; background: #333; border-left: 4px solid #28a745; border-radius: 4px; line-height: 1.8; }
+        .val { color: #00ffcc; font-family: monospace; font-size: 1.1em; }
+        .highlight { color: #ffcc00; font-size: 1.3em; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h3 style="margin-top:0;">遠景パンフォーカス解析</h3>
+        
+        <label>水平距離 (m)</label>
+        <input type="number" id="dist_horiz" value="890">
+        
+        <label>被写体の標高 (m)</label>
+        <input type="number" id="alt_obj" value="200">
+        
+        <label>撮影地の標高 (m)</label>
+        <input type="number" id="alt_cam" value="0">
+        
+        <label>焦点距離 (mm)</label>
+        <input type="number" id="focal" value="600">
+        
+        <label>センサーサイズ</label>
+        <select id="sensor">
+            <option value="0.03">フルサイズ (c=0.03)</option>
+            <option value="0.02">APS-C (c=0.02)</option>
+            <option value="0.015">マイクロフォーサーズ (c=0.015)</option>
+        </select>
+        
+        <button onclick="calculate()">解析実行</button>
+        
+        <div id="result">条件を入力してください</div>
+    </div>
+
+    <script>
+        function calculate() {
+            const d = parseFloat(document.getElementById('dist_horiz').value);
+            const h = Math.abs(parseFloat(document.getElementById('alt_obj').value) - parseFloat(document.getElementById('alt_cam').value));
+            const f = parseFloat(document.getElementById('focal').value);
+            const c = parseFloat(document.getElementById('sensor').value);
+
+            // 1. 直線距離(斜辺) L
+            const L = Math.sqrt(Math.pow(d, 2) + Math.pow(h, 2));
+
+            // 2. 理論上の最小F値 (Lを近点にするための逆算)
+            const nMin = Math.pow(f, 2) / (2 * L * 1000 * c);
+
+            // 3. 実用的なF値（1/3段刻み）
+            const fSteps = [2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22];
+            let bestF = fSteps.find(step => step >= nMin);
+            if (!bestF) bestF = 22;
+
+            // 4. 選択したF値での過焦点距離 H
+            const H = (Math.pow(f, 2) / (bestF * c)) + f;
+
+            // 5. 近点 Dn (ピントを過焦点距離 H に合わせた時)
+            const Dn = H / 2;
+
+            const resDiv = document.getElementById('result');
+            resDiv.innerHTML = `
+                ■ 直線距離: <span class="val">${L.toFixed(2)} m</span><br>
+                ■ 推奨設定: <span class="highlight">F${bestF}</span> 以上<br>
+                <hr style="border:0; border-top:1px solid #444;">
+                ■ 過焦点距離: <span class="val">${(H/1000).toFixed(2)} m</span><br>
+                ■ 合焦範囲 (近点): <span class="val">${(Dn/1000).toFixed(3)} m</span> ～ 無限遠<br>
+                <p style="font-size:0.85em; color:#aaa; margin-top:10px;">
+                    ※ピントを <b>${(H/1000).toFixed(2)}m</b> 先に置くことで、<br>
+                    被写体(${L.toFixed(1)}m)から月までを被写界深度に収めます。
+                </p>
+            `;
+        }
+    </script>
+</body>
+</html>
