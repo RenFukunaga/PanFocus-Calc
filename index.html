@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>遠景パンフォーカス解析</title>
+    <title>遠景パンフォーカス解析 Pro</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; padding: 20px; background: #1a1a1a; color: #eee; }
@@ -22,7 +22,7 @@
 </head>
 <body>
     <div class="card">
-        <h3 style="margin-top:0; color:#007aff;">遠景パンフォーカス解析</h3>
+        <h3 style="margin-top:0; color:#007aff;">遠景パンフォーカス解析 Pro</h3>
         
         <label>水平距離 (m)</label>
         <input type="number" id="dist_horiz" placeholder="例: 2000">
@@ -55,14 +55,12 @@
                 $res.removeClass('success error').hide();
 
                 try {
-                    // 値の取得
                     const d = parseFloat($('#dist_horiz').val());
                     const h_obj = parseFloat($('#alt_obj').val());
                     const h_cam = parseFloat($('#alt_cam').val());
                     const f = parseFloat($('#focal').val());
                     const c = parseFloat($('#sensor').val());
 
-                    // バリデーション
                     if (isNaN(d) || isNaN(h_obj) || isNaN(h_cam) || isNaN(f)) {
                         throw new Error("すべての項目を正しく入力してください。");
                     }
@@ -70,19 +68,23 @@
                         throw new Error("距離と焦点距離は0より大きい必要があります。");
                     }
 
-                    // 計算
+                    // --- 物理計算 (単位: m) ---
                     const h_diff = h_obj - h_cam;
                     const L = Math.sqrt(Math.pow(d, 2) + Math.pow(h_diff, 2));
                     const angleDeg = Math.atan2(h_diff, d) * (180 / Math.PI);
 
+                    // 過焦点距離 H (m) = f^2 / (N * c) + f
+                    // ※単位合わせ: f(mm)をmにするには /1000、c(mm)をmにするには /1000
+                    // 公式を変形して、最終的な m を出す: (f^2 / (N * c)) / 1000
                     const nMin = Math.pow(f, 2) / (2 * L * 1000 * c);
                     const fSteps = [0.95, 1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22, 25, 29, 32];
                     
                     let bestF = fSteps.find(step => step >= nMin);
                     if (!bestF) throw new Error("条件が厳しすぎます（F32超）。");
 
-                    const H = (Math.pow(f, 2) / (bestF * c)) + f;
-                    const Dn = H / 2;
+                    // 過焦点距離 H (m) の再計算
+                    const H_m = (Math.pow(f, 2) / (bestF * c)) / 1000;
+                    const Dn_m = H_m / 2;
 
                     // 結果の表示
                     $res.addClass('success').html(`
@@ -90,8 +92,8 @@
                         ■ 被写体の仰角: <span class="angle-val">${angleDeg.toFixed(2)}°</span><br>
                         <hr style="border:0; border-top:1px solid #444;">
                         ■ 推奨設定: <span class="highlight">F${bestF}</span> 以上<br>
-                        ■ 過焦点距離: <span class="val">${(H/1000).toFixed(2)} km</span><br>
-                        ■ 合焦範囲 (近点): <span class="val">${(Dn/1000).toFixed(3)} km</span> ～ 無限遠
+                        ■ 過焦点距離: <span class="val">${H_m.toFixed(2)} m</span><br>
+                        ■ 合焦範囲 (近点): <span class="val">${Dn_m.toFixed(2)} m</span> ～ 無限遠
                     `).fadeIn();
 
                 } catch (e) {
